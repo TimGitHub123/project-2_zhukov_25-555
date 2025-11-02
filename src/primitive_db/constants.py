@@ -15,7 +15,10 @@ COMMANDS = {
   'help': 'справочная информация.'
 }
 
-META_FILEPATH = Path(__file__).parent / 'data' / 'db_meta.json'
+META_FILE = 'db_meta.json'
+META_FILEPATH = Path(__file__).parent / META_FILE
 TABLE_PATH = Path(__file__).parent / 'data'
 
 CURRENT_TYPES  = ['str', 'int', 'bool']
+
+

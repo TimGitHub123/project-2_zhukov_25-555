@@ -1,7 +1,7 @@
 [tool.poetry]
 name = "project-2-zhukov-25-555"
 version = "0.1.0"
-description = ""
+description = "Homework 2 Python Course MIPHI"
 authors = ["Жуков Тимофей <dmerz22848@gmail.com>"]
 packages = [
     { include = "src", from = "." },

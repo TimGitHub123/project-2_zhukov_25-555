@@ -1,5 +1,7 @@
 .venv
+.ruff_cache
 dist
-src/__init__.py
-src/primitive_db/__init__.py
+src/__pycache__
 src/primitive_db/__pycache__
+src/primitive_db/data
+src/primitive_db/db_meta.json
