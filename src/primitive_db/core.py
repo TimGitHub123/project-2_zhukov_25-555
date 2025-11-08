@@ -76,7 +76,7 @@ def create_table(metadata: dict, table_name: str, columns: list) -> dict:
 # Функция удаления таблицы
 @confirm_action('удаление таблицы')
 @handle_db_errors
-def drop_table(metadata: dict, table_name: str) -> dict:
+def drop_table(metadata: dict, cache, table_name: str) -> dict:
     '''
     metadata - текущая мета дата,
     table_name - название таблицы для удаления.
@@ -94,6 +94,9 @@ def drop_table(metadata: dict, table_name: str) -> dict:
             print(f'Предупреждени: файл таблицы не найден. Удаление упоминания таблицы из файла "{META_FILE}".') # noqa: E501
             
         del metadata[table_name_clean]
+        key_delete = table_name_clean + '_' + '-' + '-'
+        cache(key_delete, '', 'drop', '')
+        
         return metadata
     
     print(f'Ошибка: таблица "{table_name_clean}" не существует.')
@@ -119,7 +122,7 @@ def list_tables(metadata: dict) -> None:
 # Функция вставки данных в таблицу
 @handle_db_errors
 @log_time
-def insert(metadata: dict, data: dict, table_name: str, values: str) -> dict:
+def insert(metadata: dict, data: dict, cache, table_name: str, values: str) -> dict:
     '''
     metadata - текущие метаданные БД,
     data - данные таблицы,
@@ -167,6 +170,10 @@ def insert(metadata: dict, data: dict, table_name: str, values: str) -> dict:
         data[list(data.keys())[i]].append(values_clean[i - 1])
     
     print(f'Запись с ID={max_id + 1} успешно добавлена в таблицу "{table_name_clean}"')
+    
+    key_insert = table_name_clean + '_' + '-' + '-'
+    cache(key_insert, '', 'insert', '')
+    
     return data
   
 
@@ -197,8 +204,8 @@ def select(table_name: str, table_data: dict, cache, metadata: dict = None, wher
                 return
             
             # Механизм кэширования
-            key_cache = table_name_clean + str(where_column) + str(where_value)
-            select_result = cache(key_cache, fetch_data, table_data, where_column, where_value) # noqa: E501
+            key_cache = table_name_clean + '_' + str(where_column) + str(where_value)
+            select_result = cache(key_cache, fetch_data, 'select', table_data, where_column, where_value) # noqa: E501
             
             pretty_table.add_rows(list(zip(*select_result.values())))
             print(pretty_table)
@@ -209,7 +216,7 @@ def select(table_name: str, table_data: dict, cache, metadata: dict = None, wher
             return
     
     key_cache = table_name_clean
-    select_result = cache(key_cache, fetch_data, table_data)
+    select_result = cache(key_cache, fetch_data, 'select', table_data)
     pretty_table.add_rows(list(zip(*select_result.values())))
     print(pretty_table)
     return
@@ -242,7 +249,7 @@ def fetch_data(table_data: dict, where_column: str = None, where_value=None) -> 
 
 # Функция обновления данных в таблице
 @handle_db_errors
-def update(table_name: str, metadata: dict, table_data: dict, set_clause: dict, where_clause: dict) -> dict: # noqa: E501
+def update(table_name: str, metadata: dict, cache, table_data: dict, set_clause: dict, where_clause: dict) -> dict: # noqa: E501
     '''
     table_name - имя таблицы,
     metadata - текущие мета данные,
@@ -258,9 +265,11 @@ def update(table_name: str, metadata: dict, table_data: dict, set_clause: dict, 
     set_column = list(set_clause.keys())[0]
     set_value = list(set_clause.values())[0]
     
+    table_name_clean = table_name.strip().lower()
+    
     if where_column in list(table_data.keys()) and set_column in list(table_data.keys()): # noqa: E501
-        if metadata[table_name][where_column] != type(where_value).__name__ or metadata[table_name][set_column] != type(set_value).__name__: # noqa: E501
-            print(f'Ошибка: тип данных в условии where/set: {type(where_value).__name__}/{type(set_value).__name__:} не совпадает с типом данных {metadata[table_name][where_column]}/{metadata[table_name][set_column]} в схеме таблицы.') # noqa: E501
+        if metadata[table_name_clean][where_column] != type(where_value).__name__ or metadata[table_name_clean][set_column] != type(set_value).__name__: # noqa: E501
+            print(f'Ошибка: тип данных в условии where/set: {type(where_value).__name__}/{type(set_value).__name__:} не совпадает с типом данных {metadata[table_name_clean][where_column]}/{metadata[table_name_clean][set_column]} в схеме таблицы.') # noqa: E501
             return table_data
 
         where_to_update = find_indices(column_values=table_data[where_column], value=where_value) # noqa: E501
@@ -275,19 +284,22 @@ def update(table_name: str, metadata: dict, table_data: dict, set_clause: dict, 
         where_to_update.sort()
         where_to_update = where_to_update[0]
         table_data[set_column][where_to_update] = set_value
-        print(f'Запись с ID={table_data['id'][where_to_update]} в таблице "{table_name}" успешно обновлена.') # noqa: E501
+        print(f'Запись с ID={table_data['id'][where_to_update]} в таблице "{table_name_clean}" успешно обновлена.') # noqa: E501
+        
+        key_update = table_name_clean + '_' + '-' + '-'
+        cache(key_update, '', 'update', '')
         
         return table_data
         
     else:
-        print(f'Ошибка: столбца {where_column} или {set_column} нет в таблице "{table_name}".') # noqa: E501
+        print(f'Ошибка: столбца {where_column} или {set_column} нет в таблице "{table_name_clean}".') # noqa: E501
         return table_data
     
     
 # Функция удаления записей из таблицы
 @confirm_action('удаление данных из таблицы')
 @handle_db_errors
-def delete(table_data: dict, table_name: str, metadata: dict, where_clause: dict) -> dict: # noqa: E501
+def delete(table_data: dict, table_name: str, cache, metadata: dict, where_clause: dict) -> dict: # noqa: E501
     '''
     table_name - имя таблицы,
     table_data - данные таблицы,
@@ -299,9 +311,11 @@ def delete(table_data: dict, table_name: str, metadata: dict, where_clause: dict
     where_column = list(where_clause.keys())[0]
     where_value = list(where_clause.values())[0]
     
+    table_name_clean = table_name.strip().lower()
+    
     if where_column in list(table_data.keys()):
-        if metadata[table_name][where_column] != type(where_value).__name__:
-            print(f'Тип данных в условии where: {type(where_value).__name__} не совпадает с типом данных {metadata[table_name][where_column]} в схеме таблицы.') # noqa: E501
+        if metadata[table_name_clean][where_column] != type(where_value).__name__:
+            print(f'Тип данных в условии where: {type(where_value).__name__} не совпадает с типом данных {metadata[table_name_clean][where_column]} в схеме таблицы.') # noqa: E501
             return table_data
 
         where_to_delete = find_indices(column_values=table_data[where_column], value=where_value) # noqa: E501
@@ -315,15 +329,18 @@ def delete(table_data: dict, table_name: str, metadata: dict, where_clause: dict
         where_to_delete.sort(reverse=True)
       
         for ind in where_to_delete:
-            print(f'Запись с ID={table_data['id'][ind]} в таблице "{table_name}" успешно удалена.') # noqa: E501
+            print(f'Запись с ID={table_data['id'][ind]} в таблице "{table_name_clean}" успешно удалена.') # noqa: E501
             for name in table_data.keys():
                 del table_data[name][ind]
+            
+            key_delete = table_name_clean + '_' + '-' + '-'
+            cache(key_delete, '', 'delete', '')
+            
         return table_data
         
     else:
-        print(f'Ошибка: столбца {where_column} нет в таблице "{table_name}".')
+        print(f'Ошибка: столбца {where_column} нет в таблице "{table_name_clean}".')
         return table_data
-
     
     
 # Функция для выведения схемы таблицы

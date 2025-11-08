@@ -91,15 +91,21 @@ def print_help() -> None:
 def create_cacher():
     cache = {}
 
-    def cache_result(key, value_func, *args, **kwargs):
-        if key in cache:
-            print('Получено значение из кэша!')
-            return cache[key]
+    def cache_result(key, value_func, mode, *args, **kwargs):
+        if mode in ('insert', 'update', 'delete', 'drop'):
+            for key_cache in list(cache.keys()):
+                if key_cache.split('_')[0] == key.split('_')[0]:
+                    del cache[key_cache]
+            return
         else:
-            result = value_func(*args, **kwargs)
-            cache[key] = result
-            print('Запрос кэширован.')
-            return result
+            if key in cache:
+                print('Получено значение из кэша!')
+                return cache[key]
+            else:
+                result = value_func(*args, **kwargs)
+                cache[key] = result
+                print('Запрос кэширован.')
+                return result
 
     return cache_result
     

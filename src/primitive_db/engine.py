@@ -54,7 +54,7 @@ def run():
                     print('Ошибка: неправильный формат ввода команды.')
                     continue
           
-                current_metadata = drop_table(metadata=current_metadata, table_name=args[1]) # noqa: E501
+                current_metadata = drop_table(metadata=current_metadata, cache=select_cache, table_name=args[1]) # noqa: E501
                 if current_metadata == '-1':
                     continue
                 save_metadata(filepath=META_FILEPATH, data=current_metadata)
@@ -75,7 +75,7 @@ def run():
                         print("Ошибка: функция load_table_data не смогла получить данные таблицы.") # noqa: E501
                         continue
             
-                    current_table_data = insert(metadata=current_metadata, data=current_table_data, table_name=table_name_clean, values=' '.join(args[4:])) # noqa: E501
+                    current_table_data = insert(metadata=current_metadata, data=current_table_data, cache=select_cache, table_name=table_name_clean, values=' '.join(args[4:])) # noqa: E501
                     save_table_data(table_name=table_name_clean, data=current_table_data) # noqa: E501
           
                 else:
@@ -127,7 +127,7 @@ def run():
                     where_clause = parser_clause(clause=args[6:])
                     if not where_clause:
                         continue
-                    updated_table_data = update(table_name=table_name_clean, metadata=current_metadata, table_data=current_table_data, set_clause=set_clause, where_clause=where_clause) # noqa: E501
+                    updated_table_data = update(table_name=table_name_clean, metadata=current_metadata, cache=select_cache, table_data=current_table_data, set_clause=set_clause, where_clause=where_clause) # noqa: E501
                     save_table_data(table_name=table_name_clean, data=updated_table_data) # noqa: E501
                 else:
                     print('Ошибка: неправильный формат команды.')
@@ -149,7 +149,7 @@ def run():
                     if not where_clause:
                         continue
                         
-                    updated_table_data = delete(table_data=current_table_data, table_name=table_name_clean, metadata=current_metadata, where_clause=where_clause) # noqa: E501
+                    updated_table_data = delete(table_data=current_table_data, table_name=table_name_clean, cache=select_cache, metadata=current_metadata, where_clause=where_clause) # noqa: E501
                     if updated_table_data == '-1':
                         continue
                     save_table_data(table_name=table_name_clean, data=updated_table_data) # noqa: E501
